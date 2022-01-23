@@ -12,14 +12,16 @@ import {
   useInterval,
   usePrevious,
 } from '../../hooks';
-import { InputNumber } from '../InputNumber';
 import { calDurationByBpm } from './helpers/calDurationByBpm';
-import { MeterStatus, MeterStatusEnum } from './MeterStatus';
+import { MetroStatusText } from './MetroStatusText';
+import { MetroStatus } from './constants';
+import { MetroBpmInput } from './MetroBpmInput';
+import { MetroBpmUnit } from './MetroBpmUnit';
 
 import BEAT_SOUND_URL from '../../assets/sound.mp3';
 
 export interface MetronomeRoundButtonProps {
-  meterStatus: MeterStatusEnum;
+  status: MetroStatus;
   bpm: number;
   max?: number;
   min?: number;
@@ -40,7 +42,7 @@ const beatAnimation = keyframes`
   }
 `;
 
-const MeterButton = styled.div<{ isBeating?: boolean }>`
+const Wrapper = styled.div<{ isBeating?: boolean }>`
   position: relative;
   border-radius: 50%;
   border: 3px solid #fafafa;
@@ -69,39 +71,8 @@ const MeterButton = styled.div<{ isBeating?: boolean }>`
   }
 `;
 
-const MeterBpmInput = styled(InputNumber)`
-  font-size: 60px;
-  font-weight: 900;
-  border: none;
-  outline: none;
-  background-color: transparent;
-  -moz-appearance: textfield;
-  max-width: 200px;
-  text-align: center;
-  line-height: 1;
-
-  &::-webkit-outer-spin-button,
-  &::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-`;
-
-const MeterBpmUnit = styled.div`
-  position: absolute;
-  bottom: 80px;
-`;
-
-const StyledMeterStatus = styled(MeterStatus)`
-  position: absolute;
-  font-weight: 900;
-  font-size: 12px;
-  bottom: 10px;
-  color: ${colors.black};
-`;
-
 export const MetronomeRoundButton: FC<MetronomeRoundButtonProps> = ({
-  meterStatus,
+  status,
   bpm,
   max = 300,
   min = 1,
@@ -113,7 +84,7 @@ export const MetronomeRoundButton: FC<MetronomeRoundButtonProps> = ({
   onBarIncrease = noop,
 }) => {
   const beatSinceStarted = useRef(0);
-  const prevMeterStatus = usePrevious(meterStatus);
+  const prevMetroStatus = usePrevious(status);
   const audioContextManager = useRefOnce(() => new AudioContextManager(BEAT_SOUND_URL));
 
   const onBpmChangeRef = useRef(onBeat);
@@ -133,14 +104,14 @@ export const MetronomeRoundButton: FC<MetronomeRoundButtonProps> = ({
 
   useInterval(
     () => {
-      if (meterStatus === MeterStatusEnum.RUNNING && bpm !== 0) {
+      if (status === MetroStatus.RUNNING && bpm !== 0) {
         audioContextManager.current.play();
         onBpmChangeRef.current();
       }
     },
     calDurationByBpm(bpm),
     [
-      meterStatus,
+      status,
       bpm,
       audioContextManager,
     ],
@@ -149,29 +120,29 @@ export const MetronomeRoundButton: FC<MetronomeRoundButtonProps> = ({
   // collect beating duration
   useInterval(
     () => {
-      if (meterStatus === MeterStatusEnum.RUNNING) {
+      if (status === MetroStatus.RUNNING) {
         onDurationIncreaseRef.current(1);
       }
     },
     1000,
-    [meterStatus],
+    [status],
   );
 
   // collect bars
   useEffect(() => {
     if (
-      meterStatus === MeterStatusEnum.RUNNING
+      status === MetroStatus.RUNNING
         && bpm !== 0
         // only reset beat count from stop/pause to running
-        && prevMeterStatus !== MeterStatusEnum.RUNNING
+        && prevMetroStatus !== MetroStatus.RUNNING
     ) {
       beatSinceStarted.current = 0;
     }
-  }, [meterStatus, bpm, prevMeterStatus]);
+  }, [status, bpm, prevMetroStatus]);
 
   useInterval(
     () => {
-      if (meterStatus === MeterStatusEnum.RUNNING && bpm !== 0) {
+      if (status === MetroStatus.RUNNING && bpm !== 0) {
         beatSinceStarted.current += 1;
         if (beatSinceStarted.current % beatType === 0) {
           onBarIncreaseRef.current(1);
@@ -179,23 +150,23 @@ export const MetronomeRoundButton: FC<MetronomeRoundButtonProps> = ({
       }
     },
     calDurationByBpm(bpm),
-    [meterStatus, bpm],
+    [status, bpm],
   );
 
   return (
-    <MeterButton
+    <Wrapper
       onClick={onClick}
-      isBeating={meterStatus === MeterStatusEnum.RUNNING}
+      isBeating={status === MetroStatus.RUNNING}
     >
-      <MeterBpmInput
+      <MetroBpmInput
         value={bpm}
         max={max}
         min={min}
         onChange={(evt) => onBpmChange(Number(evt.target.value))}
         onClick={(evt) => evt.stopPropagation()}
       />
-      <MeterBpmUnit>BPM</MeterBpmUnit>
-      <StyledMeterStatus status={meterStatus} />
-    </MeterButton>
+      <MetroBpmUnit>BPM</MetroBpmUnit>
+      <MetroStatusText status={status} />
+    </Wrapper>
   );
 };

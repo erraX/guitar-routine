@@ -1,18 +1,21 @@
 import {
   useState,
+  useEffect,
 } from 'react';
 import styled from 'styled-components';
 import {
   Button,
   OverlayTrigger,
   Popover,
-  Form,
 } from 'react-bootstrap';
-import { formatTime } from '../utils/formatTime';
-import { Block } from '../ui/Block';
-import { StatisticCard } from '../ui/StatisticCard';
-import { MetronomeRoundButton, MeterStatusEnum } from '../ui/Metronome';
-import { colors } from '../styles/colors';
+import { formatTime } from '../../utils/formatTime';
+import { Block } from '../../ui/Block';
+import { StatisticCard } from '../../ui/StatisticCard';
+import { usePrevious } from '../../hooks';
+import { MetronomeRoundButton, MetroStatus } from '../../ui/Metronome';
+import { MetroPlanForm, MetroPlanFormValues } from './MetroPlanForm';
+import { useMetroStats } from './useMetroStats';
+import { colors } from '../../styles/colors';
 
 const PageContent = styled(Block)`
   width: 100%;
@@ -60,27 +63,39 @@ const ButtonControl = styled(Button)`
 // 4. support mouse drag to change bpm
 // 5. record total duration
 // 6. record total bar
-export const Metronome = () => {
-  const [bars, setBars] = useState(0);
-  const [groups, setGroups] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [breakTime, setBreakTime] = useState(0);
-  const [meterStatus, setMeterStatus] = useState(MeterStatusEnum.STOPPED);
+export const MetronomePage = () => {
+  const [plan, setPlan] = useState<MetroPlanFormValues | null>(null);
+  const metroStats = useMetroStats();
+  const prevIsBreaking = usePrevious(metroStats.isBreaking);
+  const [metroStatus, setMetroStatus] = useState(MetroStatus.STOPPED);
   const [bpm, setBpm] = useState(120);
 
+  const startBeating = () => {
+    setMetroStatus(MetroStatus.RUNNING);
+  };
+
+  const stopBeating = () => {
+    setMetroStatus(MetroStatus.STOPPED);
+  };
+
+  const pauseBeating = () => {
+    setMetroStatus(MetroStatus.PAUSED);
+  };
+
   const toggleBeating = () => {
-    if (meterStatus === MeterStatusEnum.RUNNING) {
-      setMeterStatus(MeterStatusEnum.PAUSED);
+    if (metroStatus === MetroStatus.RUNNING) {
+      pauseBeating();
     } else {
-      setMeterStatus(MeterStatusEnum.RUNNING);
+      startBeating();
     }
   };
 
-  const handleClickReset = () => {
-    setBreakTime(0);
-    setDuration(0);
-    setGroups(0);
-    setBars(0);
+  const startBreak = () => {
+    setMetroStatus(MetroStatus.BREAKING);
+  };
+
+  const resetStats = () => {
+    metroStats.dispatch({ type: 'reset' });
   };
 
   const [showPlanPopup, setShowPlanPopup] = useState(false);
@@ -92,44 +107,59 @@ export const Metronome = () => {
     }
     if (isPlanning) {
       setIsPlanning(false);
+      stopBeating();
     }
   };
+
+  const handleSubmitPlan = (values: MetroPlanFormValues) => {
+    stopBeating();
+    resetStats();
+    setBpm(values.bpm);
+    setPlan(values);
+    setIsPlanning(true);
+    setShowPlanPopup(false);
+    startBeating();
+  };
+
+  const handleDurationIncrease = () => {
+    metroStats.dispatch({ type: 'increaseDuration' });
+
+    // start break
+    if (plan && metroStats.duration + 1 === plan.duration) {
+      metroStats.startBreak(plan.breakTime);
+      startBreak();
+    }
+  };
+
+  useEffect(() => {
+    if (!metroStats.isBreaking && prevIsBreaking) {
+      metroStats.dispatch({ type: 'resetDuration' });
+      metroStats.dispatch({ type: 'increaseGroups' });
+      if (plan && metroStats.groups + 1 < plan.groups) {
+        startBeating();
+      } else {
+        stopBeating();
+        setIsPlanning(false);
+        setPlan(null);
+      }
+    }
+  }, [metroStats.isBreaking, prevIsBreaking]);
 
   return (
     <PageContent>
       <MeterControls>
         <OverlayTrigger
           trigger="click"
-          rootClose
           show={showPlanPopup}
           placement="bottom"
           onToggle={(show) => !show && setShowPlanPopup(false)}
           overlay={(
             <Popover>
               <Popover.Body>
-                <Form
-                  onSubmit={(values) => {
-                    console.log('submit values', values);
-                    setIsPlanning(true);
-                    setShowPlanPopup(false);
-                  }}
-                >
-                  <Form.Group>
-                    <Form.Label>Groups to practice</Form.Label>
-                    <Form.Control type="text" />
-                  </Form.Group>
-                  <Form.Group>
-                    <Form.Label>Duration of each group:</Form.Label>
-                    <Form.Control type="text" />
-                  </Form.Group>
-                  <Form.Group>
-                    <Form.Label>Break time between each groups:</Form.Label>
-                    <Form.Control type="text" />
-                  </Form.Group>
-                </Form>
-                <ButtonControl type="submit">
-                  Submit
-                </ButtonControl>
+                <MetroPlanForm
+                  onSubmit={handleSubmitPlan}
+                  onCancel={() => setShowPlanPopup(false)}
+                />
               </Popover.Body>
             </Popover>
           )}
@@ -145,7 +175,7 @@ export const Metronome = () => {
           !isPlanning && (
             <ButtonControl
               variant="secondary"
-              onClick={handleClickReset}
+              onClick={resetStats}
             >
               Reset
             </ButtonControl>
@@ -154,29 +184,28 @@ export const Metronome = () => {
       </MeterControls>
       <MeterContent>
         <MetronomeRoundButton
-          meterStatus={meterStatus}
+          status={metroStatus}
           bpm={bpm}
           onClick={toggleBeating}
           onBpmChange={setBpm}
-          onDurationIncrease={() => setDuration((value) => value + 1)}
-          onBarIncrease={() => setBars((value) => value + 1)}
+          onDurationIncrease={handleDurationIncrease}
+          onBarIncrease={() => metroStats.dispatch({ type: 'increaseBars' })}
         />
         <MeterStatisticContainer>
-          <StatisticCard title="Beating" color="blue">
-            {formatTime(duration)}
+          <StatisticCard title="Beating duration" color="blue">
+            {formatTime(metroStats.duration)}
           </StatisticCard>
-          <StatisticCard title="Break" color="blue">
-            {formatTime(breakTime)}
+          <StatisticCard title="Remain break" color="blue">
+            {formatTime(metroStats.remainBreakTime)}
           </StatisticCard>
           <StatisticCard title="Bars (4/4)" color="green">
-            {bars}
+            {metroStats.bars}
           </StatisticCard>
           <StatisticCard title="Groups" color="green">
-            {groups}
+            {metroStats.groups}
           </StatisticCard>
         </MeterStatisticContainer>
       </MeterContent>
-      <input type="text" value={bars} onChange={(evt) => setBars(Number(evt.target.value))} />
     </PageContent>
   );
 };

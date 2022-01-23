@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import type { RouteObject } from './types/Router.type';
-import { Metronome } from './pages/Metronome.page';
+import { MetronomePage } from './domain/Metronome';
 
 export const routes: RouteObject[] = [
   {
@@ -9,7 +9,7 @@ export const routes: RouteObject[] = [
       title: 'Metronome',
       to: '/metronome',
     },
-    element: <Metronome />,
+    element: <MetronomePage />,
   },
   {
     path: '/tracker',
