@@ -1,8 +1,5 @@
 import {
   useState,
-  useCallback,
-  useEffect,
-  useRef,
 } from 'react';
 import styled from 'styled-components';
 import {
@@ -11,15 +8,11 @@ import {
   Popover,
   Form,
 } from 'react-bootstrap';
-import { useRefOnce } from '../hooks/useRefOnce';
 import { formatTime } from '../utils/formatTime';
 import { Block } from '../ui/Block';
-import { AudioContextManager } from '../utils/AudioContextManager';
 import { StatisticCard } from '../ui/StatisticCard';
 import { MetronomeRoundButton, MeterStatusEnum } from '../ui/Metronome';
 import { colors } from '../styles/colors';
-
-import BEAT_SOUND_URL from '../assets/sound.mp3';
 
 const PageContent = styled(Block)`
   width: 100%;
@@ -68,7 +61,6 @@ const ButtonControl = styled(Button)`
 // 5. record total duration
 // 6. record total bar
 export const Metronome = () => {
-  const beatCount = useRef(0);
   const [bars, setBars] = useState(0);
   const [groups, setGroups] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -83,72 +75,6 @@ export const Metronome = () => {
       setMeterStatus(MeterStatusEnum.RUNNING);
     }
   };
-
-  const audioContextManager = useRefOnce(() => new AudioContextManager(BEAT_SOUND_URL));
-  const playBeatSound = useCallback(() => {
-    audioContextManager.current.play();
-  }, [audioContextManager]);
-
-  useEffect(() => {
-    let timer: any;
-    if (meterStatus === MeterStatusEnum.RUNNING && bpm !== 0) {
-      playBeatSound();
-      timer = setInterval(() => {
-        playBeatSound();
-      }, Math.floor((60 * 1000) / bpm));
-    } else {
-      clearInterval(timer);
-      timer = null;
-    }
-
-    return () => {
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-      }
-    };
-  }, [meterStatus, bpm, playBeatSound]);
-
-  useEffect(() => {
-    let timer: any = null;
-    if (meterStatus === MeterStatusEnum.RUNNING) {
-      timer = setInterval(() => {
-        setDuration((value) => value + 1);
-      }, 1000);
-    } else {
-      clearInterval(timer);
-      timer = null;
-    }
-    return () => {
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-      }
-    };
-  }, [meterStatus]);
-
-  useEffect(() => {
-    let timer: any;
-    if (meterStatus === MeterStatusEnum.RUNNING && bpm !== 0) {
-      beatCount.current = 1;
-      timer = setInterval(() => {
-        beatCount.current += 1;
-        if (beatCount.current % 4 === 0) {
-          setBars((value) => value + 1);
-        }
-      }, Math.floor((60 * 1000) / bpm));
-    } else {
-      clearInterval(timer);
-      timer = null;
-    }
-
-    return () => {
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-      }
-    };
-  }, [meterStatus, bpm, playBeatSound]);
 
   const handleClickReset = () => {
     setBreakTime(0);
@@ -232,6 +158,8 @@ export const Metronome = () => {
           bpm={bpm}
           onClick={toggleBeating}
           onBpmChange={setBpm}
+          onDurationIncrease={() => setDuration((value) => value + 1)}
+          onBarIncrease={() => setBars((value) => value + 1)}
         />
         <MeterStatisticContainer>
           <StatisticCard title="Beating" color="blue">
@@ -248,6 +176,7 @@ export const Metronome = () => {
           </StatisticCard>
         </MeterStatisticContainer>
       </MeterContent>
+      <input type="text" value={bars} onChange={(evt) => setBars(Number(evt.target.value))} />
     </PageContent>
   );
 };
