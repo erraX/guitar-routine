@@ -1,0 +1,8 @@
+.navbar {
+  display: flex;
+  align-items: center;
+}
+
+.title {
+  margin-right: 20px;
+}

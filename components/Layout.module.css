@@ -1,0 +1,12 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+}
+
+.navbarContainer {
+  padding: 30px var(--body-padding);
+}
+
+.main {
+  padding: 0 var(--body-padding);
+}

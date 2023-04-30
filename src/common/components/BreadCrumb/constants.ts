@@ -1,1 +1,0 @@
-export const ROLE_BREAD_CRUMB_ITEM = Symbol('ROLE_BREAD_CRUMB_ITEM');
