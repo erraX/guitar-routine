@@ -10,6 +10,7 @@ export interface ExerciseFormProps {
 const ExerciseForm: React.FC<ExerciseFormProps> = ({ initialValues }) => {
 	return (
 		<>
+      {/* required */}
 			<Input placeholder="Exercise name">
 				Name
 			</Input>
@@ -17,8 +18,8 @@ const ExerciseForm: React.FC<ExerciseFormProps> = ({ initialValues }) => {
 			<Input placeholder="Exercise description">
 				Description
 			</Input>
-			<Text>Guide</Text>
-			<Textarea placeholder="Exercise guide" />
+			<Text>Link</Text>
+			<Textarea placeholder="Link" />
 		</>
 	);
 };

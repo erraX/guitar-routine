@@ -1,24 +1,23 @@
-import { useState } from 'react';
 import type { NextPage } from "next";
-import Link from 'next/link';
-import { Button, Text, Spacer, Modal } from "@geist-ui/core";
+import { Button, Text, Spacer, Modal, useModal } from "@geist-ui/core";
 import ExerciseTable from '@/components/ExerciseTable';
 import ExerciseForm from '@/components/ExerciseForm';
 
 const Exercise: NextPage = () => {
-	const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+	const { setVisible, bindings } = useModal();
+
 	return (
 		<div>
 			<Text span h2>Exercise</Text>
-			<Button auto onClick={() => setIsAddModalVisible(true)}>Add a exercise</Button>
+			<Button auto onClick={() => setVisible(true)}>Add exercise</Button>
 			<Spacer />
 			<ExerciseTable />
-			<Modal visible={isAddModalVisible}>
+			<Modal {...bindings}>
 				<Modal.Title>Add exercise</Modal.Title>
 				<Modal.Content>
 					<ExerciseForm />
 				</Modal.Content>
-				<Modal.Action passive onClick={() => setIsAddModalVisible(false)}>Cancel</Modal.Action>
+				<Modal.Action passive onClick={() => setVisible(false)}>Cancel</Modal.Action>
 				<Modal.Action passive onClick={() => console.log('save')}>Submit</Modal.Action>
 			</Modal>
 		</div>
