@@ -15,7 +15,7 @@ const Exercise: NextPage = () => {
 			<Modal {...bindings}>
 				<Modal.Title>Add exercise</Modal.Title>
 				<Modal.Content>
-					<ExerciseForm />
+					<ExerciseForm initialValues={{}} />
 				</Modal.Content>
 				<Modal.Action passive onClick={() => setVisible(false)}>Cancel</Modal.Action>
 				<Modal.Action passive onClick={() => console.log('save')}>Submit</Modal.Action>

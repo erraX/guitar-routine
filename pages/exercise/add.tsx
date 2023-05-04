@@ -6,7 +6,7 @@ import ExerciseForm from '@/components/ExerciseForm';
 const AddExercise: NextPage = () => {
 	const router = useRouter();
 	return <>
-		<ExerciseForm />
+		<ExerciseForm initialValues={{}} />
 		<Spacer />
 		<div>
 			<Button auto type="success">Save</Button>

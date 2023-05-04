@@ -99,8 +99,8 @@ const ExerciseTable: React.FC = () => {
         <Table.Column
           prop="operation"
           label="operation"
-          render={(operations: Operation, rowData: ExerciseTableRow) =>
-            (operations || []).map((operation) => (
+          render={(operations: any, rowData: ExerciseTableRow) =>
+            (operations || []).map((operation: any) => (
               <>
                 {operation === "EDIT" && (
                   <Button
