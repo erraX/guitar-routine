@@ -1,25 +1,37 @@
 import type { NextPage } from "next";
-import { Button, Text, Spacer, Modal, useModal } from "@geist-ui/core";
-import ExerciseTable from '@/components/ExerciseTable';
-import ExerciseForm from '@/components/ExerciseForm';
+import { useState } from 'react';
+
+import Button from '@mui/material/Button';
+import DialogTitle from '@mui/material/DialogTitle';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+
+import { ExerciseTableMUI } from '@/components/ExerciseTableMui';
 
 const Exercise: NextPage = () => {
-	const { setVisible, bindings } = useModal();
+	const [isVisible, setIsVisible] = useState(false);
 
 	return (
 		<div>
-			<Text span h2>Exercise</Text>
-			<Button auto onClick={() => setVisible(true)}>Add exercise</Button>
-			<Spacer />
-			<ExerciseTable />
-			<Modal {...bindings}>
-				<Modal.Title>Add exercise</Modal.Title>
-				<Modal.Content>
-					<ExerciseForm initialValues={{}} />
-				</Modal.Content>
-				<Modal.Action passive onClick={() => setVisible(false)}>Cancel</Modal.Action>
-				<Modal.Action passive onClick={() => console.log('save')}>Submit</Modal.Action>
-			</Modal>
+			<h2>Exercise</h2>
+			<Button onClick={() => setIsVisible(true)}>Add exercise</Button>
+			<ExerciseTableMUI />
+      <Dialog onClose={() => setIsVisible(false)} open={isVisible}>
+        <DialogTitle>Add exercise</DialogTitle>
+        <DialogContent>
+          <div>Modal content</div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsVisible(false)}>Cancel</Button>
+          <Button onClick={() => {
+            console.log('submit');
+            setIsVisible(false);
+          }} autoFocus>
+            Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
 		</div>
 	)
 };
