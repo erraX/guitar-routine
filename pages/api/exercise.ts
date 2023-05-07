@@ -9,11 +9,10 @@ export default async function handler(
     case 'GET': {
       try {
         const exercises = await prisma.exercise.findMany();
-        response.status(200).json(exercises);
+        return response.status(200).json(exercises);
       } catch (error) {
         return response.status(500).json({ error });
       }
-      response.status(400).json({ error: 'Can not handle this request' });
     }
     case 'POST': {
       try {
@@ -24,11 +23,10 @@ export default async function handler(
             link: request.body.link,
           },
         });
-        response.status(200).json({ id: newExercise.id });
+        return response.status(200).json({ id: newExercise.id });
       } catch (error) {
         return response.status(500).json({ error });
       }
-      response.status(400).json({ error: 'Can not handle this request' });
     }
     case 'PUT': {
       try {
@@ -42,11 +40,10 @@ export default async function handler(
             link: request.body.link,
           }
         });
-        response.status(200).json({ id: updatedExercise.id });
+        return response.status(200).json({ id: updatedExercise.id });
       } catch (error) {
         return response.status(500).json({ error });
       }
-      response.status(400).json({ error: 'Can not handle this request' });
     }
     case 'DELETE': {
       try {
@@ -55,11 +52,10 @@ export default async function handler(
             id: request.body.id,
           },
         });
-        response.status(200).json({ id: deletedExercise.id });
+        return response.status(200).json({ id: deletedExercise.id });
       } catch (error) {
         return response.status(500).json({ error });
       }
-      response.status(400).json({ error: 'Can not handle this request' });
     }
     default:
       return response

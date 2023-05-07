@@ -5,5 +5,4 @@ export interface ExerciseTableRow {
   name: string;
   description?: string;
   link?: string;
-  operation?: Operation;
 }
