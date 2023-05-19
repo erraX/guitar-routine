@@ -5,6 +5,7 @@
 
 .navbarContainer {
   padding: 30px var(--body-padding);
+  padding-bottom: 0;
 }
 
 .main {

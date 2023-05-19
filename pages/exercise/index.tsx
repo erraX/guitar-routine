@@ -1,53 +1,89 @@
 import type { NextPage } from "next";
-import { useState } from 'react';
-import { useQuery } from 'react-query';
+import { useState } from "react";
+import { useQuery, useMutation } from "react-query";
 
-import Button from '@mui/material/Button';
-import DialogTitle from '@mui/material/DialogTitle';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import CircularProgress from '@mui/material/CircularProgress';
+import Button from "@mui/material/Button";
 
-import { ExerciseTable } from '@/components/ExerciseTable';
+import { ExerciseTable } from "@/components/ExerciseTable";
+
+import {
+  AddExerciseModal,
+  AddExerciseModalProps,
+} from "../../components/AddExerciseModal";
+import {
+  addExercise,
+  deleteExercise,
+  updateExercise,
+} from "../../service/exercise";
 
 const Exercise: NextPage = () => {
-	const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [internalLoading, setInternalLoading] = useState(false);
 
-  const { isLoading, error, data } = useQuery('exercise-data', () =>
-    fetch('/api/exercise').then(res => res.json())
+  const { isLoading, data, refetch } = useQuery(
+    "exercise-data",
+    () => fetch("/api/exercise").then((res) => res.json()),
+    {
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    }
   );
 
-	return (
-		<div>
-			<h2>Exercise</h2>
-      {
-        isLoading
-          ? <CircularProgress />
-          : (
-            <>
-              <Button onClick={() => setIsVisible(true)}>Add exercise</Button>
-              <ExerciseTable data={data || []} />
-            </>
-          )
-      }
-      <Dialog onClose={() => setIsVisible(false)} open={isVisible}>
-        <DialogTitle>Add exercise</DialogTitle>
-        <DialogContent>
-          <div>Modal content</div>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsVisible(false)}>Cancel</Button>
-          <Button onClick={() => {
-            console.log('submit');
-            setIsVisible(false);
-          }} autoFocus>
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
-		</div>
-	)
+
+  const addMutation = useMutation(addExercise, {
+    onSuccess: () => {
+      
+    }
+  });
+
+  const handleSubmitExercise: AddExerciseModalProps["onSubmit"] = async (
+    values
+  ) => {
+    setIsVisible(false);
+    setInternalLoading(true);
+    await addExercise(values);
+    await refetch();
+    setInternalLoading(false);
+  };
+
+  return (
+    <div>
+      <h3>Exercise</h3>
+      <Button
+        disabled={isLoading || internalLoading}
+        size="small"
+        variant="outlined"
+        sx={{ marginBottom: "16px" }}
+        onClick={() => setIsVisible(true)}
+      >
+        Add exercise
+      </Button>
+      <ExerciseTable
+        isLoading={isLoading || internalLoading}
+        data={data || []}
+        onDelete={async (id) => {
+          setInternalLoading(true);
+          await deleteExercise(id);
+          await refetch();
+          setInternalLoading(false);
+        }}
+        onUpdate={async (exercise) => {
+          setInternalLoading(true);
+          await updateExercise(exercise);
+          await refetch();
+          setInternalLoading(false);
+        }}
+      />
+      <AddExerciseModal
+        open={isVisible}
+        onCancel={() => {
+          setIsVisible(false);
+        }}
+        onSubmit={handleSubmitExercise}
+      />
+    </div>
+  );
 };
 
 export default Exercise;
