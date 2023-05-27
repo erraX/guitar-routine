@@ -1,15 +1,15 @@
 import type { NextPage } from "next";
 import { useState } from "react";
-import { useQuery, useMutation } from "react-query";
+import { useQuery } from "react-query";
 
 import Button from "@mui/material/Button";
 
-import { ExerciseTable } from "@/components/ExerciseTable";
+import { ExerciseTable } from "@/components/exercise/ExerciseTable";
 
 import {
   AddExerciseModal,
   AddExerciseModalProps,
-} from "../../components/AddExerciseModal";
+} from "../../components/exercise/AddExerciseModal";
 import {
   addExercise,
   deleteExercise,
@@ -29,13 +29,6 @@ const Exercise: NextPage = () => {
       refetchOnReconnect: false,
     }
   );
-
-
-  const addMutation = useMutation(addExercise, {
-    onSuccess: () => {
-      
-    }
-  });
 
   const handleSubmitExercise: AddExerciseModalProps["onSubmit"] = async (
     values

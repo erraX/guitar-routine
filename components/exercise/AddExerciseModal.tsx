@@ -8,7 +8,7 @@ import DialogContent from '@mui/material/DialogContent';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 
-import { ExerciseTableRow } from '../types';
+import { ExerciseTableRow } from '../../types';
 
 type FormValue = Omit<ExerciseTableRow, 'id'>;
 

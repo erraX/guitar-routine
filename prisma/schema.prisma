@@ -17,3 +17,14 @@ model Exercise {
   link         String
   createdAt DateTime @default(now())
 }
+
+model Training {
+  id             Int      @id @default(autoincrement())
+  exerciseId     Int
+  exerciseName   String
+  duration       Int
+  restDuration   Int
+  groups         Int
+  bpm            Int
+  createdAt      DateTime @default(now())
+}

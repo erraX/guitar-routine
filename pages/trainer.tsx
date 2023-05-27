@@ -1,162 +1,215 @@
 import type { NextPage } from "next";
 
-import { useReducer, useState, useRef } from "react";
-import { useQuery } from "react-query";
+import { useState, useRef } from "react";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Autocomplete from "@mui/material/Autocomplete";
-import TextField from "@mui/material/TextField";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogTitle from '@mui/material/DialogTitle';
 import Countdown, { CountdownRef } from "../components/Countdown";
+import { useConfirmExit } from "@/hooks/useConfirmExit";
+import Container from "@mui/material/Container";
+import { TrainerForm, TrainerValues } from "@/components/trainer/TrainerForm";
+import { TrainFormActions } from "@/components/trainer/TrainFormActions";
+import { TrainingStatus, TraineringRecord } from "@types";
+import { addTraining } from '@/service/training';
+
+interface ActiveTrainingData {
+  bpm: number;
+  timeRemaining: number;
+  groupsRemaining: number;
+  breakRemaining: number;
+}
 
 const Trainer: NextPage = () => {
   const countdownRef = useRef<CountdownRef>(null);
-  const [trainStatus, setTrainStatus] = useState<
-    "STOPPED" | "RUNNING" | "PAUSED"
-  >("STOPPED");
-  // trainer form value using useReducer
-  const [trainerFormValue, dispatch] = useReducer(
-    (state: any, action: any) => {
-      switch (action.type) {
-        case "exercise":
-          return { ...state, exercise: action.payload };
-        case "duration":
-          return { ...state, duration: action.payload };
-        case "groups":
-          return { ...state, groups: action.payload };
-        default:
-          return state;
-      }
-    },
-    {
-      exercise: null,
-      duration: 0,
-      groups: 0,
-    }
+  const restCountdownRef = useRef<CountdownRef>(null);
+
+  const [alertSaveModalVisible, setAlertSaveModalVisible] = useState(false);
+
+  const [trainingStatus, setTrainingStatus] = useState<TrainingStatus>(
+    TrainingStatus.STOPPED
   );
 
-  const { isLoading, data } = useQuery(
-    "exercise-data",
-    () => fetch("/api/exercise").then((res) => res.json()),
-    {
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-    }
-  );
+  const [formValues, setFormValues] = useState<TrainerValues>({
+    exercise: null,
+    duration: 120,
+    bpm: 80,
+    groups: 5,
+    restDuration: 60,
+  });
 
-  // Genreate exercise options
-  const exerciseOptions = (data || []).map((exercise: any) => ({
-    value: String(exercise.id),
-    label: exercise.name,
-  }));
+  const [remainingGroups, setRemainingGroups] = useState<number>(0);
+
+  const trainnedGroups = formValues.groups - remainingGroups;
+
+  const isFormValid =
+    formValues.exercise !== null &&
+    formValues.duration > 0 &&
+    formValues.groups > 0;
+
+  const isStopped = trainingStatus === TrainingStatus.STOPPED;
+
+  const handleCancelSave = () => {
+    setAlertSaveModalVisible(false);
+  };
+
+  const handleSave = () => {
+    setAlertSaveModalVisible(false);
+    if (!formValues.exercise) {
+      return;
+    }
+    addTraining({
+      exerciseId: Number(formValues.exercise.value),
+      exerciseName: formValues.exercise.label,
+      bpm: formValues.bpm,
+      duration: formValues.duration,
+      groups: trainnedGroups,
+      restDuration: formValues.restDuration,
+    });
+  };
+
+  useConfirmExit({ shouldConfirm: !isStopped });
 
   return (
-    <div>
+    <Container>
       <h3>Trainer</h3>
       <Box sx={{ flexGrow: 1 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <Autocomplete
-              disabled={trainStatus === "RUNNING" || trainStatus === "PAUSED"}
-              loading={isLoading}
-              sx={{ width: "100%" }}
-              options={exerciseOptions}
-              value={trainerFormValue.exercise}
-              isOptionEqualToValue={(option, value) =>
-                option.value === value.value
-              }
-              onChange={(event, value) => {
-                dispatch({ type: "exercise", payload: value });
+        <Stack spacing={2} direction="column">
+          <TrainerForm
+            disabled={!isStopped}
+            values={formValues}
+            onChange={setFormValues}
+          />
+          <Stack spacing={2} direction="row">
+            <TrainFormActions
+              trainingStatus={trainingStatus}
+              canStart={isFormValid}
+              onClickStart={() => {
+                setTrainingStatus(TrainingStatus.RUNNING);
+                setRemainingGroups(formValues.groups);
+                countdownRef.current?.start();
               }}
-              renderInput={(params) => (
-                <TextField {...params} label="Exercise you want to practice" />
-              )}
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField
-              type="number"
-              disabled={trainStatus === "RUNNING" || trainStatus === "PAUSED"}
-              sx={{ width: "100%" }}
-              label="Duration(seconds) for each group"
-              value={trainerFormValue.duration}
-              onChange={(event) => {
-                dispatch({ type: "duration", payload: event.target.value });
+              onClickResume={() => {
+                setTrainingStatus(TrainingStatus.RUNNING);
+                countdownRef.current?.resume();
+                restCountdownRef.current?.resume();
               }}
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField
-              type="number"
-              disabled={trainStatus === "RUNNING" || trainStatus === "PAUSED"}
-              sx={{ width: "100%" }}
-              label="How many groups you want to practice"
-              value={trainerFormValue.groups}
-              onChange={(event) => {
-                dispatch({ type: "groups", payload: event.target.value });
+              onClickPause={() => {
+                setTrainingStatus(TrainingStatus.PAUSED);
+                countdownRef.current?.pause();
+                restCountdownRef.current?.pause();
+              }}
+              onClickStop={() => {
+                setTrainingStatus(TrainingStatus.STOPPED);
+                countdownRef.current?.stop();
+                restCountdownRef.current?.stop();
+
+                if (trainnedGroups > 0) {
+                  setAlertSaveModalVisible(true);
+                }
               }}
             />
+          </Stack>
+          <Grid container spacing={2} sx={{ display: isStopped ? 'none' : 'flex' }}>
+            <Grid item xs={6}>
+              <Card>
+                <CardContent>
+                  <Stack justifyContent="center" alignItems="center">
+                    <Typography variant="h6">Time remaining</Typography>
+                    <Countdown
+                      ref={countdownRef}
+                      seconds={formValues.duration}
+                      onEnd={() => {
+                        // No groups remain
+                        if (remainingGroups === 1) {
+                          setTrainingStatus(TrainingStatus.STOPPED);
+                          setRemainingGroups(remainingGroups - 1);
+                          if (trainnedGroups > 0) {
+                            setAlertSaveModalVisible(true);
+                          }
+                        } else {
+                          // Start rest timer
+                          restCountdownRef.current?.start();
+                        }
+                        setRemainingGroups(remainingGroups - 1);
+                      }}
+                    />
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6}>
+              <Card>
+                <CardContent>
+                  <Stack justifyContent="center" alignItems="center">
+                    <Typography variant="h6">Rest remaining</Typography>
+                    <Countdown
+                      ref={restCountdownRef}
+                      seconds={formValues.restDuration}
+                      onEnd={() => {
+                        // Start traingin again
+                        setTrainingStatus(TrainingStatus.RUNNING);
+                        countdownRef.current?.start();
+                      }}
+                    />
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6}>
+              <Card>
+                <CardContent>
+                  <Stack justifyContent="center" alignItems="center">
+                    <Typography variant="h6">Metronome</Typography>
+                    <Typography variant="h3">{formValues.bpm}</Typography>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6}>
+              <Card>
+                <CardContent>
+                  <Stack justifyContent="center" alignItems="center">
+                    <Typography variant="h6">Groups remaining</Typography>
+                    <Typography variant="h3">{remainingGroups}</Typography>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6}>
+              <Card>
+                <CardContent>
+                  <Stack justifyContent="center" alignItems="center">
+                    <Typography variant="h6">Trained groups</Typography>
+                    <Typography variant="h3">{trainnedGroups}</Typography>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
           </Grid>
-          <Grid item xs={12}>
-            <Stack spacing={2} direction="row">
-              {trainStatus !== "RUNNING" && (
-                <Button
-                  variant="contained"
-                  onClick={() => {
-                    setTrainStatus("RUNNING");
-                    if (trainStatus === "STOPPED") {
-                      countdownRef.current?.start();
-                    } else if (trainStatus === "PAUSED") {
-                      countdownRef.current?.resume();
-                    }
-                  }}
-                  disabled={
-                    trainerFormValue.exercise === null ||
-                    trainerFormValue.duration === 0 ||
-                    trainerFormValue.groups === 0
-                  }
-                >
-                  {trainStatus === "PAUSED" ? "Resume" : "Start"}
-                </Button>
-              )}
-              {trainStatus === "RUNNING" && (
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onClick={() => {
-                    setTrainStatus("PAUSED");
-                    countdownRef.current?.pause();
-                  }}
-                >
-                  Pause
-                </Button>
-              )}
-              {(trainStatus === "RUNNING" || trainStatus === "PAUSED") && (
-                <Button
-                  variant="contained"
-                  color="error"
-                  onClick={() => {
-                    setTrainStatus("STOPPED");
-                    countdownRef.current?.stop();
-                  }}
-                >
-                  Stop
-                </Button>
-              )}
-            </Stack>
-          </Grid>
-        </Grid>
-        <Countdown
-          ref={countdownRef}
-          seconds={trainerFormValue.duration}
-          onStop={() => {
-            setTrainStatus("STOPPED");
-          }}
-        />
+        </Stack>
       </Box>
-    </div>
+      <Dialog
+        open={alertSaveModalVisible}
+        onClose={handleCancelSave}
+      >
+        <DialogTitle id="alert-dialog-title">
+          Trainned {trainnedGroups} groups, do you want to this trainning record?
+        </DialogTitle>
+        <DialogActions>
+          <Button onClick={handleCancelSave}>Cancel</Button>
+          <Button onClick={handleSave} autoFocus>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
   );
 };
 

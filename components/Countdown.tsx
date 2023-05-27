@@ -8,9 +8,11 @@ import Typography from "@mui/material/Typography";
 
 export interface CountdownProps {
   seconds: number;
+  onStart?: () => void;
   onStop?: () => void;
   onPause?: () => void;
   onResume?: () => void;
+  onEnd?: () => void;
 }
 
 export interface CountdownRef {
@@ -21,7 +23,7 @@ export interface CountdownRef {
 }
 
 const Countdown = forwardRef<CountdownRef, CountdownProps>(function Countdown(
-  { seconds, onStop, onPause, onResume },
+  { seconds, onStart, onStop, onPause, onResume, onEnd },
   ref
 ) {
   const [isRunning, setIsRunning] = useState(false);
@@ -36,6 +38,7 @@ const Countdown = forwardRef<CountdownRef, CountdownProps>(function Countdown(
     start() {
       setTimeLeft(seconds);
       setIsRunning(true);
+      onStart?.();
     },
     resume() {
       setIsRunning(true);
@@ -54,16 +57,16 @@ const Countdown = forwardRef<CountdownRef, CountdownProps>(function Countdown(
       setTimeLeft(timeLeft - 1);
       if (timeLeft === 1) {
         setIsRunning(false);
-        onStop?.();
+        onEnd?.();
       }
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [timeLeft, isRunning, onStop]);
+  }, [timeLeft, isRunning, onStop, onEnd]);
 
   return (
-    <Typography variant="h6">
-      {timeLeft > 0 ? `倒计时: ${timeLeft}秒` : "时间到!"}
+    <Typography variant="h3">
+      {timeLeft}S
     </Typography>
   );
 });
