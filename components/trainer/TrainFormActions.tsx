@@ -20,9 +20,9 @@ export const TrainFormActions: FC<TrainFormActionsProps> = ({
   onClickStop,
 }) => {
   // TODO: using context
-  const isRunning = trainingStatus === TrainingStatus.RUNNING;
+  const isRunning = trainingStatus === TrainingStatus.TRAINING || trainingStatus === TrainingStatus.RESTING;
   const isStopped = trainingStatus === TrainingStatus.STOPPED;
-  const isPaused = trainingStatus === TrainingStatus.PAUSED;
+  const isPaused = trainingStatus === TrainingStatus.REST_PAUSED || trainingStatus === TrainingStatus.TRAINING_PAUSED;
 
   return (
     <>

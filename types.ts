@@ -9,8 +9,10 @@ export interface ExerciseTableRow {
 
 export enum TrainingStatus {
   STOPPED = "STOPPED",
-  RUNNING = "RUNNING",
-  PAUSED = "PAUSED",
+  TRAINING = "TRAINING",
+  RESTING = "RESTING",
+  TRAINING_PAUSED = "TRAINING_PAUSED",
+  REST_PAUSED = "REST_PAUSED",
 }
 
 export interface TraineringRecord {

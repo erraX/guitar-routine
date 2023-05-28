@@ -1,59 +1,49 @@
 import type { NextPage } from "next";
 
-import { useState, useRef } from "react";
+import { useState, useReducer } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
-import Button from '@mui/material/Button';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogTitle from '@mui/material/DialogTitle';
-import Countdown, { CountdownRef } from "../components/Countdown";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogTitle from "@mui/material/DialogTitle";
+import Countdown from "../components/Countdown";
 import { useConfirmExit } from "@/hooks/useConfirmExit";
 import Container from "@mui/material/Container";
 import { TrainerForm, TrainerValues } from "@/components/trainer/TrainerForm";
 import { TrainFormActions } from "@/components/trainer/TrainFormActions";
-import { TrainingStatus, TraineringRecord } from "@types";
-import { addTraining } from '@/service/training';
-
-interface ActiveTrainingData {
-  bpm: number;
-  timeRemaining: number;
-  groupsRemaining: number;
-  breakRemaining: number;
-}
+import { TrainingStatus } from "@types";
+import { useTrainingState } from '@/hooks/useTrainingState';
+import { addTraining } from "@/service/training";
 
 const Trainer: NextPage = () => {
-  const countdownRef = useRef<CountdownRef>(null);
-  const restCountdownRef = useRef<CountdownRef>(null);
+  const [trainingState, dispatchTrainingAction] = useTrainingState();
 
   const [alertSaveModalVisible, setAlertSaveModalVisible] = useState(false);
 
-  const [trainingStatus, setTrainingStatus] = useState<TrainingStatus>(
-    TrainingStatus.STOPPED
-  );
-
   const [formValues, setFormValues] = useState<TrainerValues>({
     exercise: null,
-    duration: 120,
+    duration: 2,
     bpm: 80,
-    groups: 5,
-    restDuration: 60,
+    groups: 2,
+    restDuration: 2,
   });
 
-  const [remainingGroups, setRemainingGroups] = useState<number>(0);
+  // const isFormValid =
+  //   formValues.exercise !== null &&
+  //   formValues.duration > 0 &&
+  //   formValues.groups > 0;
 
-  const trainnedGroups = formValues.groups - remainingGroups;
-
+  // Only for testing
   const isFormValid =
-    formValues.exercise !== null &&
     formValues.duration > 0 &&
     formValues.groups > 0;
 
-  const isStopped = trainingStatus === TrainingStatus.STOPPED;
+  const isStopped = trainingState.status === TrainingStatus.STOPPED;
 
   const handleCancelSave = () => {
     setAlertSaveModalVisible(false);
@@ -69,7 +59,7 @@ const Trainer: NextPage = () => {
       exerciseName: formValues.exercise.label,
       bpm: formValues.bpm,
       duration: formValues.duration,
-      groups: trainnedGroups,
+      groups: trainingState.trainedGroups,
       restDuration: formValues.restDuration,
     });
   };
@@ -88,56 +78,84 @@ const Trainer: NextPage = () => {
           />
           <Stack spacing={2} direction="row">
             <TrainFormActions
-              trainingStatus={trainingStatus}
+              trainingStatus={trainingState.status}
               canStart={isFormValid}
               onClickStart={() => {
-                setTrainingStatus(TrainingStatus.RUNNING);
-                setRemainingGroups(formValues.groups);
-                countdownRef.current?.start();
+                dispatchTrainingAction({
+                  type: "START_TRAINING",
+                  bpm: formValues.bpm,
+                  duration: formValues.duration,
+                  totalGroups: formValues.groups,
+                  restDuration: formValues.restDuration,
+                  totalRestGroups: formValues.groups,
+                });
               }}
               onClickResume={() => {
-                setTrainingStatus(TrainingStatus.RUNNING);
-                countdownRef.current?.resume();
-                restCountdownRef.current?.resume();
+                if (trainingState.status === TrainingStatus.TRAINING_PAUSED) {
+                  dispatchTrainingAction({
+                    type: "RESUME_TRAINING",
+                  });
+                } else if (trainingState.status === TrainingStatus.REST_PAUSED) {
+                  dispatchTrainingAction({
+                    type: "RESUME_REST",
+                  });
+                }
               }}
               onClickPause={() => {
-                setTrainingStatus(TrainingStatus.PAUSED);
-                countdownRef.current?.pause();
-                restCountdownRef.current?.pause();
+                if (trainingState.status === TrainingStatus.TRAINING) {
+                  dispatchTrainingAction({
+                    type: "PAUSE_TRAINING",
+                  });
+                } else if (trainingState.status === TrainingStatus.RESTING) {
+                  dispatchTrainingAction({
+                    type: "PAUSE_REST",
+                  });
+                }
               }}
               onClickStop={() => {
-                setTrainingStatus(TrainingStatus.STOPPED);
-                countdownRef.current?.stop();
-                restCountdownRef.current?.stop();
+                dispatchTrainingAction({
+                  type: "STOP_TRAINING",
+                });
 
-                if (trainnedGroups > 0) {
+                if (trainingState.trainedGroups > 0) {
                   setAlertSaveModalVisible(true);
                 }
               }}
             />
           </Stack>
-          <Grid container spacing={2} sx={{ display: isStopped ? 'none' : 'flex' }}>
+          {/* <div>
+            <pre>{JSON.stringify(trainingState, null, 2)}</pre>
+          </div> */}
+          <Grid
+            container
+            spacing={2}
+            sx={{ display: isStopped ? "none" : "flex" }}
+          >
             <Grid item xs={6}>
               <Card>
                 <CardContent>
                   <Stack justifyContent="center" alignItems="center">
                     <Typography variant="h6">Time remaining</Typography>
                     <Countdown
-                      ref={countdownRef}
-                      seconds={formValues.duration}
-                      onEnd={() => {
-                        // No groups remain
-                        if (remainingGroups === 1) {
-                          setTrainingStatus(TrainingStatus.STOPPED);
-                          setRemainingGroups(remainingGroups - 1);
-                          if (trainnedGroups > 0) {
-                            setAlertSaveModalVisible(true);
+                      isRunning={trainingState.trainingCountdownRunning}
+                      timeLeft={trainingState.trainingCountdownTimeLeft}
+                      onChange={(timeLeft) => {
+                        dispatchTrainingAction({ type: 'SET_TRAINING_COUNTDOWN', timeLeft });
+
+                        // Current group complete
+                        const isCurrentGroupCompleted = timeLeft === 0;
+                        if (isCurrentGroupCompleted) {
+                          dispatchTrainingAction({ type: 'COMPLETE_TRAINING' });
+
+                          if (trainingState.trainedGroups + 1 === trainingState.totalGroups) {
+                            dispatchTrainingAction({ type: 'STOP_TRAINING' });
+                            if (trainingState.trainedGroups > 0) {
+                              setAlertSaveModalVisible(true);
+                            }
+                          } else {
+                            dispatchTrainingAction({ type: 'START_REST' });
                           }
-                        } else {
-                          // Start rest timer
-                          restCountdownRef.current?.start();
                         }
-                        setRemainingGroups(remainingGroups - 1);
                       }}
                     />
                   </Stack>
@@ -150,12 +168,17 @@ const Trainer: NextPage = () => {
                   <Stack justifyContent="center" alignItems="center">
                     <Typography variant="h6">Rest remaining</Typography>
                     <Countdown
-                      ref={restCountdownRef}
-                      seconds={formValues.restDuration}
-                      onEnd={() => {
-                        // Start traingin again
-                        setTrainingStatus(TrainingStatus.RUNNING);
-                        countdownRef.current?.start();
+                      isRunning={trainingState.restCountdownRunning}
+                      timeLeft={trainingState.restCountdownTimeLeft}
+                      onChange={(timeLeft) => {
+                        dispatchTrainingAction({ type: 'SET_REST_COUNTDOWN', timeLeft });
+
+                        // Current rest complete
+                        const isCurrentRestCompleted = timeLeft === 0;
+                        if (isCurrentRestCompleted) {
+                          dispatchTrainingAction({ type: 'COMPLETE_REST' });
+                          dispatchTrainingAction({ type: 'START_NEW_TRAINING_GROUP' });
+                        }
                       }}
                     />
                   </Stack>
@@ -177,7 +200,7 @@ const Trainer: NextPage = () => {
                 <CardContent>
                   <Stack justifyContent="center" alignItems="center">
                     <Typography variant="h6">Groups remaining</Typography>
-                    <Typography variant="h3">{remainingGroups}</Typography>
+                    <Typography variant="h3">{trainingState.totalGroups - trainingState.trainedGroups}</Typography>
                   </Stack>
                 </CardContent>
               </Card>
@@ -187,7 +210,7 @@ const Trainer: NextPage = () => {
                 <CardContent>
                   <Stack justifyContent="center" alignItems="center">
                     <Typography variant="h6">Trained groups</Typography>
-                    <Typography variant="h3">{trainnedGroups}</Typography>
+                    <Typography variant="h3">{trainingState.trainedGroups}</Typography>
                   </Stack>
                 </CardContent>
               </Card>
@@ -195,12 +218,10 @@ const Trainer: NextPage = () => {
           </Grid>
         </Stack>
       </Box>
-      <Dialog
-        open={alertSaveModalVisible}
-        onClose={handleCancelSave}
-      >
+      <Dialog open={alertSaveModalVisible} onClose={handleCancelSave}>
         <DialogTitle id="alert-dialog-title">
-          Trainned {trainnedGroups} groups, do you want to this trainning record?
+          Trainned {trainingState.trainedGroups} groups, do you want to this
+          trainning record?
         </DialogTitle>
         <DialogActions>
           <Button onClick={handleCancelSave}>Cancel</Button>
