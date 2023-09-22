@@ -1,5 +1,5 @@
 import { FC } from "react";
-import Button from "@mui/material/Button";
+import { Button } from "@mantine/core";
 import { TrainingStatus } from "@types";
 
 export interface TrainFormActionsProps {
@@ -20,28 +20,41 @@ export const TrainFormActions: FC<TrainFormActionsProps> = ({
   onClickStop,
 }) => {
   // TODO: using context
-  const isRunning = trainingStatus === TrainingStatus.TRAINING || trainingStatus === TrainingStatus.RESTING;
+  const isRunning =
+    trainingStatus === TrainingStatus.TRAINING ||
+    trainingStatus === TrainingStatus.RESTING;
   const isStopped = trainingStatus === TrainingStatus.STOPPED;
-  const isPaused = trainingStatus === TrainingStatus.REST_PAUSED || trainingStatus === TrainingStatus.TRAINING_PAUSED;
+  const isPaused =
+    trainingStatus === TrainingStatus.REST_PAUSED ||
+    trainingStatus === TrainingStatus.TRAINING_PAUSED;
 
   return (
     <>
       {isStopped && (
-        <Button disabled={!canStart} variant="contained" onClick={onClickStart}>
+        <Button
+          type="submit"
+          disabled={!canStart}
+          variant="light"
+          onClick={onClickStart}
+        >
           Start
         </Button>
       )}
       {isPaused && (
-        <Button variant="contained" onClick={onClickResume}>
+        <Button variant="light" color="teal" onClick={onClickResume}>
           Resume
         </Button>
       )}
-      {isRunning && <Button variant="outlined" color="error" onClick={onClickPause}>
-        Pause
-      </Button>}
-      {(isRunning || isPaused) && <Button variant="contained" color="error" onClick={onClickStop}>
-        Stop
-      </Button>}
+      {isRunning && (
+        <Button variant="light" color="red" onClick={onClickPause}>
+          Pause
+        </Button>
+      )}
+      {(isRunning || isPaused) && (
+        <Button color="red" onClick={onClickStop}>
+          Stop
+        </Button>
+      )}
     </>
   );
 };

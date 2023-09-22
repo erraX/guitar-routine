@@ -23,6 +23,6 @@
       "@types": ["types"],
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "pages/trainer.tsx.back", "pages/history.tsx.back", "pages/exercise/index.tsx.back"],
   "exclude": ["node_modules"]
 }
