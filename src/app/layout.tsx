@@ -24,7 +24,7 @@ export default function RootLayout({
         <MantineProvider>
           <Stack className="w-[800px] m-0 mx-auto p-6" align="center">
             <nav><Navigator /></nav>
-            <main>
+            <main className="w-full">
               {children}
             </main>
           </Stack>

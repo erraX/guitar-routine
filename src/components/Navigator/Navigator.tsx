@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { FC } from 'react';
 import { Button } from '@mantine/core';
 import Link from 'next/link';
 
-export const Navigator = () => {
+export const Navigator: FC = () => {
   return (
     <nav>
       <Link href="/">
