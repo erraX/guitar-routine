@@ -12,7 +12,7 @@ export interface ExerciseTrainFormProps {
 
 export const ExerciseTrainForm: FC<ExerciseTrainFormProps> = ({ values, onChange }) => {
   return (
-    <Stack>
+    <Stack className="w-[500px]" align="stretch">
       <NumberInput
         label="Groups"
         description="How many groups you want to train"
