@@ -6,7 +6,7 @@ export const Navigator: FC = () => {
   return (
     <nav>
       <Link href="/">
-        <Button variant="white">Home</Button>
+        <Button variant="white">Training</Button>
       </Link>
       <Link href="/exercise/manage">
         <Button variant="white">Exercises</Button>

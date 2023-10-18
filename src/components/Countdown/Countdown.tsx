@@ -37,6 +37,7 @@ export const Countdown = forwardRef<CountdownRef, CountdownProps>(function Count
       }
 
       if (curCount === 0) {
+        setIsRunning(false);
         onEnd?.();
         return;
       }

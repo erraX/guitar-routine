@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Button, Stack } from '@mantine/core';
 import { useExerciseRunningState } from '../hooks/useExerciseRunningState';
@@ -9,22 +9,28 @@ import { Countdown, CountdownRef } from '@/components/Countdown';
 import { useExerciseTrainingForm } from '@/hooks/useExerciseTrainingForm';
 import { useBindShortcuts } from '@/hooks/useBindShortcuts';
 
+const SPACE_KEY_CODE = '32';
+
 export default function Home() {
   const countdownRef = useRef<CountdownRef>(null);
+  const restCountdownRef = useRef<CountdownRef>(null);
   const exerciseRunningState = useExerciseRunningState();
+
+  const [trainedGroups, setTrainedGroups] = useState(0);
 
   const {
     formValues,
     handleFieldChange,
   } = useExerciseTrainingForm({
-    groups: 3,
-    trainingDuration: 60,
-    restDuration: 30,
+    groups: 2,
+    trainingDuration: 3,
+    restDuration: 3,
   });
 
   const handleStart = () => {
     flushSync(() => {
       exerciseRunningState.start();
+      setTrainedGroups(0);
     });
     console.log('start', formValues);
     countdownRef.current?.start();
@@ -37,7 +43,7 @@ export default function Home() {
   };
 
   useBindShortcuts({
-    '32'() {
+    [SPACE_KEY_CODE]() {
       if (exerciseRunningState.state === 'STOP') {
           handleStart();
       }
@@ -60,11 +66,28 @@ export default function Home() {
         {exerciseRunningState.state === 'STOP' && <Button onClick={handleStart}>Start</Button>}
         {exerciseRunningState.state === 'RUNNING' && <Button onClick={handleStop} color="red">Stop</Button>}
       </Stack>
+      {exerciseRunningState.state === 'RUNNING' && <div>
+        Trained groups: {trainedGroups} / {formValues['groups']}
+      </div>}
       {exerciseRunningState.state === 'RUNNING' && <Countdown
+        className="text-9xl"
         ref={countdownRef}
         count={formValues['trainingDuration']}
         onEnd={() => {
-          handleStop();
+          console.log('on countdown end');
+          setTrainedGroups(prev => prev + 1);
+          if (trainedGroups + 1 < formValues['groups']) {
+            restCountdownRef.current?.start();
+          }
+        }}
+      />}
+      {exerciseRunningState.state === 'RUNNING' && <Countdown
+        className="text-9xl"
+        ref={restCountdownRef}
+        count={formValues['restDuration']}
+        onEnd={() => {
+          console.log('on rest end');
+          countdownRef.current?.start();
         }}
       />}
     </Stack>
