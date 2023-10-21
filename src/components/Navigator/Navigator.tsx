@@ -11,6 +11,12 @@ export const Navigator: FC = () => {
       <Link href="/exercise/manage">
         <Button variant="white">Exercises</Button>
       </Link>
+      <Link href="/record/create">
+        <Button variant="white">Create Record</Button>
+      </Link>
+      <Link href="/record/history">
+        <Button variant="white">Record History</Button>
+      </Link>
     </nav>
   );
 };

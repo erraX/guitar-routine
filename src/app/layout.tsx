@@ -1,7 +1,9 @@
 import './globals.css'
 import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
 import type { Metadata } from 'next'
 import { MantineProvider, ColorSchemeScript, Stack } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { Inter } from 'next/font/google'
 import { Navigator } from '../components/Navigator';
 
@@ -22,6 +24,7 @@ export default function RootLayout({
       <head><ColorSchemeScript /></head>
       <body className={`${inter.className} bg-white`}>
         <MantineProvider>
+          <Notifications />
           <Stack className="w-[800px] m-0 mx-auto p-6" align="center">
             <nav><Navigator /></nav>
             <main className="w-full">

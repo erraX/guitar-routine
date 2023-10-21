@@ -1,11 +1,22 @@
 'use client';
 
+import useSWR from 'swr';
 import React, { FC } from 'react';
-import { Table } from '@mantine/core';
-import { exercises } from '../../../mockup/exercises';
+import { Table, Loader } from '@mantine/core';
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export const ExerciseList: FC = () => {
-  const rows = exercises.map((i) => (
+  const { data, isLoading } = useSWR(
+    "/api/exercise",
+    fetcher
+  );
+
+  if (isLoading) {
+    return <Loader color="blue" />;
+  }
+
+  const rows = data.map((i: any) => (
     <Table.Tr key={i.id}>
       <Table.Td>{i.name}</Table.Td>
       <Table.Td>{i.description}</Table.Td>
