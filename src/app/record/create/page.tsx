@@ -2,9 +2,10 @@
 
 import useSWR from 'swr';
 import React, { useState } from 'react';
-import { Button, Select, TextInput, Loader } from '@mantine/core';
+import { Button, Select, TextInput, Loader, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { addRecord } from '../../../service/record';
+
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -55,7 +56,7 @@ export default function RecordCreate() {
   }
 
   return (
-    <div>
+    <Stack>
       <Select
         label="Choose Exercise"
         placeholder="Exercise"
@@ -107,8 +108,8 @@ export default function RecordCreate() {
           bpm: evt.target.value,
         }))}
       />
-      <Button fullWidth variant="light" color="teal" onClick={handleSave}>Save</Button>
-    </div>
+      <Button fullWidth onClick={handleSave}>Save</Button>
+    </Stack>
   );
 }
 
